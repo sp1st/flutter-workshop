@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(TaskManagerApp());
@@ -19,27 +20,26 @@ class TaskManagerApp extends StatelessWidget {
 
 class TodoItem {
   String task;
+  DateTime deadline;
   bool isDone;
-  DateTime createdAt = DateTime.now();
 
-  TodoItem(this.task, {this.isDone = false, DateTime? createdAt})
-      : createdAt = createdAt ?? DateTime.now();
+  TodoItem(this.task, this.deadline, {this.isDone = false});
 
-  // JSON 形式に変換するメソッド
-  Map<String, dynamic> toJson() => {
-        'task': task,
-        'isDone': isDone,
-        'createdAt': createdAt.toIso8601String(),
-      };
-
-  // JSON 形式から TodoItem に変換するファクトリコンストラクタ
   factory TodoItem.fromJson(Map<String, dynamic> json) {
     return TodoItem(
-      json['task'] as String,
-      isDone: json['isDone'] as bool,
-      createdAt:
-          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      json['task'] ?? '', // null チェックを追加
+      DateTime.parse(
+          json['deadline'] ?? DateTime.now().toIso8601String()), // null チェックを追加
+      isDone: json['isDone'] ?? false,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'task': task,
+      'deadline': deadline.toIso8601String(),
+      'isDone': isDone
+    };
   }
 }
 
@@ -50,6 +50,7 @@ class TaskManagerHomePage extends StatefulWidget {
 
 class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
   List<TodoItem> _tasks = [];
+  final myFormat = DateFormat('yyyy年MM月dd日');
 
   @override
   void initState() {
@@ -70,15 +71,49 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
 
   void _displayAddTaskDialog(BuildContext context) {
     TextEditingController taskController = TextEditingController();
+    DateTime _selectedDeadline = DateTime.now();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('新しいタスクを追加'),
-          content: TextField(
-            controller: taskController,
-            decoration: InputDecoration(hintText: 'タスク名'),
+          // content: TextField(
+          //   controller: taskController,
+          //   decoration: InputDecoration(hintText: 'タスク名'),
+          // ),
+          content: Column(
+            //Columnの長さを最小化する
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // タスク名を設定
+              TextField(
+                controller: taskController,
+                decoration: InputDecoration(hintText: 'タスク名'),
+              ),
+              SizedBox(height: 20),
+              // 締め切り日を設定
+              ListTile(
+                title: Text('${myFormat.format(_selectedDeadline.toLocal())}'),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  // 締め切り日をカレンダーから選択
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    // 締め切り日の初期値
+                    initialDate: _selectedDeadline.toLocal(),
+                    // 締切日に指定できるのは2024年〜2100年
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDeadline = picked;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
           actions: <Widget>[
             TextButton(
@@ -91,7 +126,7 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
               child: Text('追加'),
               onPressed: () {
                 setState(() {
-                  _tasks.add(TodoItem(taskController.text));
+                  _tasks.add(TodoItem(taskController.text, _selectedDeadline));
                   _saveTasks();
                 });
                 Navigator.of(context).pop();
@@ -136,14 +171,48 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
   void _showEditTaskDialog(BuildContext context, int index) {
     TextEditingController taskController =
         TextEditingController(text: _tasks[index].task);
+    DateTime _selectedDeadline = _tasks[index].deadline;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('タスクを編集'),
-          content: TextField(
-            controller: taskController,
-            decoration: InputDecoration(hintText: 'タスク名'),
+          // content: TextField(
+          //   controller: taskController,
+          //   decoration: InputDecoration(hintText: 'タスク名'),
+          // ),
+          content: Column(
+            //Columnの長さを最小化する
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // タスク名を設定
+              TextField(
+                controller: taskController,
+                decoration: InputDecoration(labelText: 'タスク名'),
+              ),
+              SizedBox(height: 20),
+              // 締め切り日を設定
+              ListTile(
+                title: Text('${myFormat.format(_selectedDeadline.toLocal())}'),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  // 締め切り日をカレンダーから選択
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    // 締め切り日の初期値
+                    initialDate: _selectedDeadline,
+                    // 締切日に指定できるのは2024年〜2100年
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDeadline = picked;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
           actions: <Widget>[
             TextButton(
@@ -156,7 +225,8 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
               child: Text('保存'),
               onPressed: () {
                 setState(() {
-                  _tasks[index] = TodoItem(taskController.text);
+                  _tasks[index] =
+                      TodoItem(taskController.text, _selectedDeadline);
                   _saveTasks();
                 });
                 Navigator.of(context).pop();
@@ -196,7 +266,7 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
                       _tasks.add(doneTask);
                     } else {
                       // タスクを作成日時の昇順に並べ替え
-                      _tasks.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                      _tasks.sort((a, b) => a.deadline.compareTo(b.deadline));
                       // 完了済みのタスクをリストの一番下に移動
                       _tasks.sort((a, b) => a.isDone ? 1 : -1);
                     }
@@ -205,6 +275,7 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
                 },
               ),
               title: Text(_tasks[index].task),
+              subtitle: Text(myFormat.format(_tasks[index].deadline)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
