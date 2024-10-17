@@ -20,13 +20,16 @@ class TaskManagerApp extends StatelessWidget {
 class TodoItem {
   String task;
   bool isDone;
+  DateTime createdAt = DateTime.now();
 
-  TodoItem(this.task, {this.isDone = false});
+  TodoItem(this.task, {this.isDone = false, DateTime? createdAt})
+      : createdAt = createdAt ?? DateTime.now();
 
   // JSON 形式に変換するメソッド
   Map<String, dynamic> toJson() => {
         'task': task,
         'isDone': isDone,
+        'createdAt': createdAt.toIso8601String(),
       };
 
   // JSON 形式から TodoItem に変換するファクトリコンストラクタ
@@ -34,6 +37,8 @@ class TodoItem {
     return TodoItem(
       json['task'] as String,
       isDone: json['isDone'] as bool,
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     );
   }
 }
@@ -184,11 +189,16 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
                 value: _tasks[index].isDone,
                 onChanged: (bool? value) {
                   setState(() {
-                    _tasks[index].isDone = value ?? false;
+                    _tasks[index].isDone = !_tasks[index].isDone;
                     if (_tasks[index].isDone) {
                       // タスクをリストの一番下に移動
                       final doneTask = _tasks.removeAt(index);
                       _tasks.add(doneTask);
+                    } else {
+                      // タスクを作成日時の昇順に並べ替え
+                      _tasks.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                      // 完了済みのタスクをリストの一番下に移動
+                      _tasks.sort((a, b) => a.isDone ? 1 : -1);
                     }
                     _saveTasks();
                   });
