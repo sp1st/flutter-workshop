@@ -94,7 +94,9 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
               SizedBox(height: 20),
               // 締め切り日を設定
               ListTile(
-                title: Text('${myFormat.format(_selectedDeadline.toLocal())}'),
+                title: Text('締切'),
+                subtitle:
+                    Text('${myFormat.format(_selectedDeadline.toLocal())}'),
                 trailing: Icon(Icons.calendar_today),
                 onTap: () async {
                   // 締め切り日をカレンダーから選択
@@ -127,6 +129,7 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
               onPressed: () {
                 setState(() {
                   _tasks.add(TodoItem(taskController.text, _selectedDeadline));
+                  _tasks.sort((a, b) => a.deadline.compareTo(b.deadline));
                   _saveTasks();
                 });
                 Navigator.of(context).pop();
@@ -193,7 +196,9 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
               SizedBox(height: 20),
               // 締め切り日を設定
               ListTile(
-                title: Text('${myFormat.format(_selectedDeadline.toLocal())}'),
+                title: Text('締切'),
+                subtitle:
+                    Text('${myFormat.format(_selectedDeadline.toLocal())}'),
                 trailing: Icon(Icons.calendar_today),
                 onTap: () async {
                   // 締め切り日をカレンダーから選択
@@ -227,6 +232,7 @@ class _TaskManagerHomePageState extends State<TaskManagerHomePage> {
                 setState(() {
                   _tasks[index] =
                       TodoItem(taskController.text, _selectedDeadline);
+                  _tasks.sort((a, b) => a.deadline.compareTo(b.deadline));
                   _saveTasks();
                 });
                 Navigator.of(context).pop();
