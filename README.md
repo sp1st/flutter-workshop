@@ -4,6 +4,16 @@
   - [環境構築編](https://blog.hicoder.one/flutter-workshop-2024-environment-setup/)
   - [アプリ開発編](https://blog.hicoder.one/flutter-workshop-2024-app-development/)
 
+## 機能
+- ワークショップの資料に解説のあった機能
+  - TODOリストの表示
+  - タスクの追加
+  - タスクの削除
+  - データの永続化
+- 追加した機能
+  - タスクの編集機能
+  - チェックボックス
+  - 期限の設定
 
 ## Getting Started
 
